@@ -1,5 +1,8 @@
-def input_error(func):
-    def inner(*args, **kwargs):
+from typing import List, Tuple, Union, Callable, Any
+from models import AddressBook, Record  # Припускаємо, що класи в models.py
+
+def input_error(func: Callable) -> Callable:
+    def inner(*args: Any, **kwargs: Any) -> str:
         try:
             return func(*args, **kwargs)
         except ValueError as e:
@@ -10,15 +13,17 @@ def input_error(func):
             return "Contact not found."
     return inner
 
-
-def parse_input(user_input):
+def parse_input(user_input: str) -> Tuple[str, List[str]]:
+    if not user_input.strip():
+        return "", []
     cmd, *args = user_input.split()
     cmd = cmd.strip().lower()
-    return cmd, *args
-
+    return cmd, args
 
 @input_error
-def add_contact(args, book):
+def add_contact(args: List[str], book: AddressBook) -> str:
+    if len(args) < 2:
+        raise IndexError
     name, phone, *_ = args
     record = book.find(name)
     message = "Contact updated."
@@ -30,9 +35,10 @@ def add_contact(args, book):
         record.add_phone(phone)
     return message
 
-
 @input_error
-def change_contact(args, book):
+def change_contact(args: List[str], book: AddressBook) -> str:
+    if len(args) < 3:
+        raise IndexError
     name, old_phone, new_phone = args
     record = book.find(name)
     if record:
@@ -40,24 +46,25 @@ def change_contact(args, book):
         return "Phone updated."
     raise KeyError
 
-
 @input_error
-def show_phone(args, book):
+def show_phone(args: List[str], book: AddressBook) -> str:
+    if not args:
+        raise IndexError
     name = args[0]
     record = book.find(name)
     if record:
         return "; ".join(p.value for p in record.phones)
     raise KeyError
 
-
-def show_all(book):
+def show_all(book: AddressBook) -> str:
     if not book.data:
         return "No contacts found."
     return "\n".join(str(record) for record in book.data.values())
 
-
 @input_error
-def add_birthday(args, book):
+def add_birthday(args: List[str], book: AddressBook) -> str:
+    if len(args) < 2:
+        raise IndexError
     name, date = args
     record = book.find(name)
     if record:
@@ -65,9 +72,10 @@ def add_birthday(args, book):
         return "Birthday added."
     raise KeyError
 
-
 @input_error
-def show_birthday(args, book):
+def show_birthday(args: List[str], book: AddressBook) -> str:
+    if not args:
+        raise IndexError
     name = args[0]
     record = book.find(name)
     if record and record.birthday:
@@ -76,24 +84,20 @@ def show_birthday(args, book):
         return "Birthday not set for this contact."
     raise KeyError
 
-
 @input_error
-def birthdays(book):
+def birthdays(book: AddressBook) -> str:
     upcoming = book.get_upcoming_birthdays()
     if not upcoming:
         return "No birthdays in the next 7 days."
+    # Формуємо список іменинників
     return "\n".join([f"{item['name']}: {item['congratulation_date']}" for item in upcoming])
 
-
-def main():
+def main() -> None:
     book = AddressBook()
     print("Welcome to the assistant bot!")
     while True:
         user_input = input("Enter a command: ")
-        if not user_input:
-            continue
-
-        command, *args = parse_input(user_input)
+        command, args = parse_input(user_input)
 
         if command in ["close", "exit"]:
             print("Good bye!")
@@ -123,9 +127,11 @@ def main():
         elif command == "birthdays":
             print(birthdays(book))
 
+        elif not command:
+            continue
+            
         else:
             print("Invalid command.")
-
 
 if __name__ == "__main__":
     main()

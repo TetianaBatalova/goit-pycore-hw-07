@@ -1,5 +1,20 @@
-from typing import List, Tuple, Union, Callable, Any
-from models import AddressBook, Record  # Припускаємо, що класи в models.py
+import pickle
+from typing import List, Tuple, Callable, Any
+from models import AddressBook, Record
+
+
+def save_data(book: AddressBook, filename: str = "addressbook.pkl") -> None:
+    with open(filename, "wb") as f:
+        pickle.dump(book, f)
+
+
+def load_data(filename: str = "addressbook.pkl") -> AddressBook:
+    try:
+        with open(filename, "rb") as f:
+            return pickle.load(f)
+    except (FileNotFoundError, EOFError, pickle.UnpicklingError):
+        return AddressBook()
+
 
 def input_error(func: Callable) -> Callable:
     def inner(*args: Any, **kwargs: Any) -> str:
@@ -13,12 +28,14 @@ def input_error(func: Callable) -> Callable:
             return "Contact not found."
     return inner
 
+
 def parse_input(user_input: str) -> Tuple[str, List[str]]:
     if not user_input.strip():
         return "", []
     cmd, *args = user_input.split()
     cmd = cmd.strip().lower()
     return cmd, args
+
 
 @input_error
 def add_contact(args: List[str], book: AddressBook) -> str:
@@ -35,6 +52,7 @@ def add_contact(args: List[str], book: AddressBook) -> str:
         record.add_phone(phone)
     return message
 
+
 @input_error
 def change_contact(args: List[str], book: AddressBook) -> str:
     if len(args) < 3:
@@ -46,6 +64,7 @@ def change_contact(args: List[str], book: AddressBook) -> str:
         return "Phone updated."
     raise KeyError
 
+
 @input_error
 def show_phone(args: List[str], book: AddressBook) -> str:
     if not args:
@@ -56,10 +75,12 @@ def show_phone(args: List[str], book: AddressBook) -> str:
         return "; ".join(p.value for p in record.phones)
     raise KeyError
 
+
 def show_all(book: AddressBook) -> str:
     if not book.data:
         return "No contacts found."
     return "\n".join(str(record) for record in book.data.values())
+
 
 @input_error
 def add_birthday(args: List[str], book: AddressBook) -> str:
@@ -71,6 +92,7 @@ def add_birthday(args: List[str], book: AddressBook) -> str:
         record.add_birthday(date)
         return "Birthday added."
     raise KeyError
+
 
 @input_error
 def show_birthday(args: List[str], book: AddressBook) -> str:
@@ -84,22 +106,25 @@ def show_birthday(args: List[str], book: AddressBook) -> str:
         return "Birthday not set for this contact."
     raise KeyError
 
+
 @input_error
 def birthdays(book: AddressBook) -> str:
     upcoming = book.get_upcoming_birthdays()
     if not upcoming:
         return "No birthdays in the next 7 days."
-    # Формуємо список іменинників
-    return "\n".join([f"{item['name']}: {item['congratulation_date']}" for item in upcoming])
+    res = [f"{i['name']}: {i['congratulation_date']}" for i in upcoming]
+    return "\n".join(res)
+
 
 def main() -> None:
-    book = AddressBook()
+    book = load_data()
     print("Welcome to the assistant bot!")
     while True:
         user_input = input("Enter a command: ")
         command, args = parse_input(user_input)
 
         if command in ["close", "exit"]:
+            save_data(book)
             print("Good bye!")
             break
 
@@ -129,9 +154,10 @@ def main() -> None:
 
         elif not command:
             continue
-            
+
         else:
             print("Invalid command.")
+
 
 if __name__ == "__main__":
     main()
